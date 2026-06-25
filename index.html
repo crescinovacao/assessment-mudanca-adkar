@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assessment de Prontidão para Mudança — Método ADKAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    --accent: #007BEA;
+    --accent-dark: #001B71;
+    --accent-light: #B3DFFF;
+    --text: #210000;
+    --text-light: #666666;
+    --border: #e0e0e0;
+    --bg: #ffffff;
+    --bg-soft: #f4f8fe;
+    --selected-bg: #ebf5ff;
+    --selected-border: #007BEA;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Aptos', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Barra de progresso fixa */
+  #progress-bar-wrap {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--border);
+    z-index: 1000;
+    display: none;
+  }
+  #progress-bar {
+    height: 4px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* Telas */
+  .screen {
+    display: none;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+    animation: fadeIn 0.35s ease;
+  }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Imagens */
+  .img-placeholder {
+    width: 100%;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .img-placeholder.empty {
+    aspect-ratio: 16/9;
+    background: var(--bg-soft);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--border);
+    color: var(--text-light);
+    font-size: 14px;
+  }
+  .img-placeholder img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+  }
+
+  /* Tipografia */
+  .screen-title {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 800;
+    font-size: clamp(22px, 5vw, 32px);
+    color: var(--accent);
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .screen-subtitle {
+    font-size: clamp(13px, 2.3vw, 15px);
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-style: italic;
+  }
+  .screen-body {
+    font-size: clamp(14px, 2.3vw, 15px);
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  /* Tabela de pilares (capa) */
+  .pilares-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 28px;
+    font-size: 13.5px;
+  }
+  .pilares-table th {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    padding: 10px 14px;
+    text-align: left;
+    border-right: 3px solid #fff;
+  }
+  .pilares-table th:last-child { border-right: none; }
+  .pilares-table td {
+    padding: 12px 14px;
+    background: #f0f0f0;
+    border: 3px solid #fff;
+    vertical-align: middle;
+    line-height: 1.5;
+  }
+  .pilares-table .pilar-label {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    color: var(--accent-dark);
+    white-space: nowrap;
+    width: 200px;
+  }
+
+  /* Escala visual (instruções) */
+  .escala-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .escala-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--bg-soft);
+    font-size: 13.5px;
+  }
+  .escala-badge {
+    min-width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Pergunta */
+  .pilar-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+  .question-label {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 6px;
+  }
+  .question-text {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    font-size: clamp(16px, 3vw, 20px);
+    color: var(--text);
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+
+  /* Opções (escala likert) */
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .option-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    background: var(--bg);
+    width: 100%;
+    font-family: inherit;
+    text-align: left;
+    transition: all 0.2s ease;
+    font-size: clamp(13.5px, 2vw, 15px);
+    color: var(--text);
+  }
+  .option-item.selected {
+    border-color: var(--selected-border);
+    background: var(--selected-bg);
+  }
+  .option-item:hover:not(.selected) {
+    border-color: #ccc;
+    background: var(--bg-soft);
+  }
+  .option-num {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-soft);
+    border: 1.5px solid var(--border);
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .option-item.selected .option-num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* Botões */
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 13px 28px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: #0063c5; }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+
+  .btn-back {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-family: 'Raleway', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 8px 0;
+    transition: color 0.2s;
+  }
+  .btn-back:hover { color: var(--accent); }
+
+  .btn-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Resultados */
+  .results-title {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 800;
+    font-size: clamp(20px, 4vw, 28px);
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+  .results-intro {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .media-geral-card {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .media-geral-label {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: #fff;
+  }
+  .media-geral-valor {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 800;
+    font-size: 36px;
+    line-height: 1;
+  }
+  .media-geral-leitura {
+    font-size: 15px;
+    color: #fff;
+    margin-top: 6px;
+  }
+
+  .result-card {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 14px;
+    background: var(--bg);
+  }
+
+  /* Matriz de pilares */
+  .matriz-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+  .matriz-table th {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    padding: 11px 14px;
+    text-align: left;
+    font-size: 13px;
+    border-right: 3px solid #fff;
+  }
+  .matriz-table th:last-child { border-right: none; }
+  .matriz-table th:nth-child(2),
+  .matriz-table th:nth-child(3) { text-align: center; }
+  .matriz-table td {
+    padding: 12px 14px;
+    background: #f0f0f0;
+    border: 3px solid #fff;
+    vertical-align: middle;
+    text-align: left;
+  }
+  .matriz-table td:nth-child(2),
+  .matriz-table td:nth-child(3) { text-align: center; }
+  .pilar-nome {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    color: var(--text);
+    font-size: 13.5px;
+  }
+  .media-valor {
+    font-family: 'Raleway', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--accent);
+    text-align: center;
+  }
+  .prioridade-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: 'Raleway', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .prioridade-alta   { background: #F6A7D7; color: #210000; }
+  .prioridade-media  { background: #FFC7AE; color: #210000; }
+  .prioridade-baixa  { background: #CFE5B1; color: #210000; }
+
+  .leitura-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Raleway', sans-serif;
+    margin-bottom: 16px;
+  }
+  .leitura-elevada   { background: #003E00; color: #ffffff; }
+  .leitura-positiva  { background: #001B71; color: #ffffff; }
+  .leitura-moderada  { background: #2D0051; color: #ffffff; }
+  .leitura-baixa     { background: #A50062; color: #ffffff; }
+  .leitura-critica   { background: #62003B; color: #ffffff; }
+
+  .btn-restart {
+    background: none;
+    border: 1.5px solid var(--border);
+    color: var(--text-light);
+    font-family: 'Raleway', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .btn-restart:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Dica */
+  .dica-box {
+    background: var(--bg-soft);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 480px) {
+    .screen { padding: 36px 16px 80px; }
+    .option-item { padding: 12px 14px; }
+    .result-card { padding: 16px; }
+    .pilares-table .pilar-label { white-space: normal; width: auto; }
+    .pilares-table { font-size: 12.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+<!-- ======================== CAPA ======================== -->
+<div class="screen active" id="screen-cover">
+  <div class="img-placeholder">
+    <img src="https://i.imgur.com/ws1AxIp.png" alt="Capa do assessment">
+  </div>
+
+  <p class="screen-title">Assessment de Prontidão para Mudança</p>
+  <p class="screen-body">
+    Este assessment foi desenvolvido para aprofundar a avaliação de prontidão individual para mudanças com base no modelo ADKAR (Prosci). A versão expandida permite identificar com precisão em qual dimensão cada liderança precisa concentrar esforços de desenvolvimento, comunicação e suporte, garantindo que a transição organizacional ocorra de forma fluida e sustentável.
+  </p>
+
+  <p style="font-family:'Raleway',sans-serif;font-weight:700;font-size:16px;color:var(--text);margin-bottom:8px;">Sobre o Modelo ADKAR</p>
+  <p class="screen-body" style="margin-bottom:16px;">O modelo ADKAR é uma metodologia focada no indivíduo para facilitar a mudança organizacional. A tabela abaixo detalha as cinco dimensões avaliadas neste assessment:</p>
+
+  <table class="pilares-table">
+    <thead>
+      <tr>
+        <th>Dimensão</th>
+        <th>O que avalia</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pilar-label">A &mdash; Awareness (Consciência)</td>
+        <td>Se você compreende a natureza, os motivos e a urgência da mudança.</td>
+      </tr>
+      <tr>
+        <td class="pilar-label">D &mdash; Desire (Desejo)</td>
+        <td>Se você está pessoalmente motivado(a) e disposto(a) a apoiar e participar da mudança.</td>
+      </tr>
+      <tr>
+        <td class="pilar-label">K &mdash; Knowledge (Conhecimento)</td>
+        <td>Se você sabe o que fazer, quais novos comportamentos adotar e como contribuir.</td>
+      </tr>
+      <tr>
+        <td class="pilar-label">A &mdash; Ability (Habilidade)</td>
+        <td>Se você se sente capaz de executar os novos comportamentos na prática diária.</td>
+      </tr>
+      <tr>
+        <td class="pilar-label">R &mdash; Reinforcement (Reforço)</td>
+        <td>Se você percebe sistemas de apoio, reconhecimento e condições para sustentar a mudança.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="btn-row" style="justify-content:flex-end;">
+    <button class="btn-primary" onclick="goTo('screen-instructions')">Avançar &rarr;</button>
+  </div>
+</div>
+
+<!-- ======================== INSTRUÇÕES ======================== -->
+<div class="screen" id="screen-instructions">
+  <div class="img-placeholder">
+    <img src="https://i.imgur.com/GQ37w78.png" alt="Como responder">
+  </div>
+
+  <p class="screen-title">Como responder</p>
+  <p class="screen-body">
+    Leia cada afirmação com atenção, considerando o momento atual da mudança em que você está envolvido(a). Não existem respostas certas ou erradas: o objetivo é identificar percepções reais.
+  </p>
+
+  <p style="font-family:'Raleway',sans-serif;font-weight:700;font-size:14px;color:var(--accent-dark);margin-bottom:10px;">Escala de resposta:</p>
+  <div class="escala-wrap">
+    <div class="escala-item"><span class="escala-badge">1</span> <span><strong>Discordo totalmente</strong> &mdash; A afirmação não reflete minha realidade.</span></div>
+    <div class="escala-item"><span class="escala-badge">2</span> <span><strong>Discordo parcialmente</strong> &mdash; Há mais aspectos negativos do que positivos.</span></div>
+    <div class="escala-item"><span class="escala-badge">3</span> <span><strong>Neutro</strong> &mdash; Nem concordo, nem discordo / estou em dúvida.</span></div>
+    <div class="escala-item"><span class="escala-badge">4</span> <span><strong>Concordo parcialmente</strong> &mdash; Na maior parte, a afirmação reflete minha realidade.</span></div>
+    <div class="escala-item"><span class="escala-badge">5</span> <span><strong>Concordo totalmente</strong> &mdash; A afirmação reflete plenamente minha realidade.</span></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-back" onclick="goTo('screen-cover')">&larr; Voltar</button>
+    <button class="btn-primary" onclick="startTest()">Iniciar Assessment &rarr;</button>
+  </div>
+</div>
+
+<!-- ======================== PERGUNTA ======================== -->
+<div class="screen" id="screen-question">
+  <span class="pilar-badge" id="q-pilar-badge">Pilar</span>
+  <p class="question-label" id="q-label">Pergunta X de 35</p>
+  <p class="question-text" id="q-text">Texto da pergunta</p>
+  <div class="dica-box" id="q-dica"></div>
+  <div class="options-list" id="q-options"></div>
+  <div class="btn-row">
+    <button class="btn-back" onclick="prevQuestion()">&larr; Voltar</button>
+    <button class="btn-primary" id="btn-next" onclick="nextQuestion()" disabled>Avançar &rarr;</button>
+  </div>
+</div>
+
+<!-- ======================== RESULTADO ======================== -->
+<div class="screen" id="screen-results">
+  <p class="results-title">Resultado do Assessment</p>
+
+  <div id="pdf-capture-area">
+    <!-- Média geral + leitura -->
+    <div id="media-geral-wrap"></div>
+
+    <!-- Matriz de prioridade por pilar -->
+    <p style="font-family:'Raleway',sans-serif;font-weight:700;font-size:15px;color:var(--accent-dark);margin-bottom:12px;">Matriz de Prioridade por Pilar</p>
+    <div id="results-matriz"></div>
+  </div>
+
+  <button class="btn-primary" id="btnDownload" onclick="generatePDF()" style="width:100%;margin-bottom:12px;">Baixar resultado em PDF</button>
+  <button class="btn-restart" onclick="restartTest()">Refazer o assessment</button>
+</div>
+
+<script>
+// ===================== DADOS =====================
+const pilares = [
+  {
+    id: 'A', label: 'Awareness (Consciência)',
+    desc: 'Avalia se a pessoa compreende por que a mudança está acontecendo, qual é o contexto e qual a real necessidade de transformação.',
+    dica: 'Considere o que sabe sobre os motivos e objetivos desta mudança.',
+    color: '#007BEA',
+    perguntas: [
+      'Compreendo claramente as razões pelas quais esta mudança está sendo implementada neste momento.',
+      'Conheço os fatores internos e externos (mercado, concorrência, resultados) que tornam essa mudança necessária.',
+      'Entendo quais serão os impactos positivos dessa mudança para a organização como um todo.',
+      'Consigo explicar para outras pessoas por que essa mudança é importante e urgente.',
+      'Percebo que a liderança da organização tem comunicado de forma transparente os motivos da mudança.',
+      'Reconheço os riscos de não realizar essa mudança no prazo adequado.',
+      'Sinto que tenho informações suficientes sobre o contexto e os objetivos estratégicos que levaram a essa decisão.'
+    ]
+  },
+  {
+    id: 'D', label: 'Desire (Desejo)',
+    desc: 'Avalia se a pessoa vê sentido pessoal na mudança e está genuinamente disposta a apoiá-la.',
+    dica: 'Reflita sobre sua motivação pessoal em relação a esta mudança.',
+    color: '#007BEA',
+    perguntas: [
+      'Vejo benefícios reais dessa mudança para o meu trabalho e minha rotina.',
+      'Estou pessoalmente engajado(a) em fazer essa mudança acontecer, mesmo que exija esforço extra.',
+      'Acredito que essa mudança é positiva para minha carreira e meu desenvolvimento profissional.',
+      'Sinto-me motivado(a) a contribuir ativamente para o sucesso da implementação.',
+      'Confio que a liderança está genuinamente comprometida com essa mudança.',
+      'Mesmo com os desconfortos naturais de uma transição, estou disposto(a) a me adaptar.',
+      'Sinto que essa mudança está alinhada com meus valores pessoais e profissionais.'
+    ]
+  },
+  {
+    id: 'K', label: 'Knowledge (Conhecimento)',
+    desc: 'Avalia se a pessoa sabe o que fazer de diferente e tem clareza sobre o papel que precisa desempenhar.',
+    dica: 'Pense na sua clareza sobre o que é esperado de você nessa mudança.',
+    color: '#007BEA',
+    perguntas: [
+      'Tenho clareza sobre o que exatamente é esperado de mim nesse novo cenário.',
+      'Sei quais são os novos processos, ferramentas ou comportamentos que preciso adotar.',
+      'Recebi treinamento ou orientação suficiente para entender como agir na prática.',
+      'Conheço os marcos e prazos previstos para a implementação da mudança.',
+      'Sei onde buscar informações ou suporte quando tenho dúvidas sobre a mudança.',
+      'Compreendo como minha função específica será impactada e o que mudará no meu dia a dia.',
+      'Sinto que as lideranças intermediárias têm o conhecimento necessário para me apoiar nessa transição.'
+    ]
+  },
+  {
+    id: 'AB', label: 'Ability (Habilidade)',
+    desc: 'Avalia se a pessoa se sente capaz de executar os novos comportamentos no dia a dia, considerando tempo, recursos e competências.',
+    dica: 'Considere sua capacidade real de aplicar o que foi aprendido na prática.',
+    color: '#007BEA',
+    perguntas: [
+      'Sinto-me capaz de realizar as novas atividades exigidas pela mudança.',
+      'Tenho as competências técnicas necessárias para atuar no novo modelo.',
+      'Disponho de tempo suficiente na minha rotina para me adaptar aos novos processos.',
+      'Consigo aplicar o que aprendi nos treinamentos em situações reais de trabalho.',
+      'Sinto que tenho autonomia para tomar decisões alinhadas com a nova direção.',
+      'Minha equipe e eu temos recursos (ferramentas, orçamento, pessoas) suficientes para implementar a mudança.',
+      'Mesmo diante de obstáculos ou imprevistos, consigo encontrar formas de seguir com a mudança.'
+    ]
+  },
+  {
+    id: 'R', label: 'Reinforcement (Reforço)',
+    desc: 'Avalia se a pessoa percebe apoio contínuo, reconhecimento e condições institucionais para sustentar a mudança ao longo do tempo.',
+    dica: 'Reflita sobre o suporte que percebe da organização para manter a mudança.',
+    color: '#007BEA',
+    perguntas: [
+      'Percebo que a liderança reconhece e valoriza os esforços de quem está se adaptando à mudança.',
+      'Recebo feedbacks regulares sobre como estou me saindo no processo de adaptação.',
+      'Existem rituais, reuniões ou indicadores que ajudam a acompanhar o progresso da mudança.',
+      'Sinto que a organização oferece suporte contínuo (mentoria, coaching, acompanhamento) durante a transição.',
+      'Percebo que as pessoas que resistem à mudança são tratadas com respeito e recebem suporte para evoluir.',
+      'Acredito que essa mudança vai se sustentar ao longo do tempo e não será abandonada.',
+      'Sinto que estou sendo preparado(a) para o futuro, e não apenas para resolver um problema imediato.'
+    ]
+  }
+];
+
+// Planifica todas as perguntas
+const allQuestions = [];
+pilares.forEach((p, pi) => {
+  p.perguntas.forEach((q, qi) => {
+    allQuestions.push({ pilarIndex: pi, pilarId: p.id, pilarLabel: p.label, dica: p.dica, text: q });
+  });
+});
+
+let currentQ = 0;
+let answers = new Array(allQuestions.length).fill(null);
+
+const escalaLabels = ['', 'Discordo totalmente', 'Discordo parcialmente', 'Neutro', 'Concordo parcialmente', 'Concordo totalmente'];
+
+// ===================== NAVEGAÇÃO =====================
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  document.getElementById('progress-bar-wrap').style.display = (id === 'screen-question') ? 'block' : 'none';
+}
+
+function startTest() {
+  currentQ = 0;
+  renderQuestion();
+  goTo('screen-question');
+}
+
+function prevQuestion() {
+  if (currentQ === 0) { goTo('screen-instructions'); return; }
+  currentQ--;
+  renderQuestion();
+  window.scrollTo(0, 0);
+}
+
+function nextQuestion() {
+  if (answers[currentQ] === null) return;
+  currentQ++;
+  if (currentQ >= allQuestions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+    window.scrollTo(0, 0);
+  }
+}
+
+// ===================== RENDER PERGUNTA =====================
+function renderQuestion() {
+  const q = allQuestions[currentQ];
+  const pilar = pilares[q.pilarIndex];
+  const total = allQuestions.length;
+
+  // Progresso
+  const pct = Math.round((currentQ / total) * 100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  // Textos
+  document.getElementById('q-pilar-badge').textContent = 'Pilar ' + q.pilarId + ' — ' + q.pilarLabel;
+  document.getElementById('q-label').textContent = 'Afirmação ' + (currentQ + 1) + ' de ' + total;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-dica').textContent = q.dica;
+
+  // Opções
+  const container = document.getElementById('q-options');
+  container.innerHTML = '';
+  for (let v = 1; v <= 5; v++) {
+    const btn = document.createElement('button');
+    btn.className = 'option-item' + (answers[currentQ] === v ? ' selected' : '');
+    btn.innerHTML = `<span class="option-num">${v}</span><span>${escalaLabels[v]}</span>`;
+    btn.onclick = () => selectAnswer(v);
+    container.appendChild(btn);
+  }
+
+  // Botão avançar
+  document.getElementById('btn-next').disabled = (answers[currentQ] === null);
+
+  // Texto do botão na última pergunta
+  document.getElementById('btn-next').textContent = (currentQ === total - 1) ? 'Ver Resultado →' : 'Avançar →';
+}
+
+function selectAnswer(val) {
+  answers[currentQ] = val;
+  document.querySelectorAll('.option-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === val - 1);
+  });
+  document.getElementById('btn-next').disabled = false;
+}
+
+// ===================== RESULTADO =====================
+function calcResultados() {
+  return pilares.map((p, pi) => {
+    const indices = allQuestions.reduce((acc, q, i) => { if (q.pilarIndex === pi) acc.push(i); return acc; }, []);
+    const soma = indices.reduce((s, i) => s + (answers[i] || 0), 0);
+    const media = soma / indices.length;
+    return { ...p, media: media, pct: Math.round((media / 5) * 100) };
+  });
+}
+
+function getLeitura(media) {
+  if (media >= 4.6) return { texto: 'Prontidão elevada', classe: 'leitura-elevada', acao: 'A liderança compreende, deseja e se sente capaz. Manter o engajamento e usar como agente multiplicador(a).' };
+  if (media >= 3.6) return { texto: 'Prontidão positiva com pontos de atenção', classe: 'leitura-positiva', acao: 'Identificar qual(is) pilar(es) está(ão) com média mais baixa e concentrar esforços.' };
+  if (media >= 2.6) return { texto: 'Prontidão moderada', classe: 'leitura-moderada', acao: 'Necessidade de ações estruturadas de comunicação, capacitação e suporte. Risco de engajamento mediano.' };
+  if (media >= 1.6) return { texto: 'Baixa prontidão', classe: 'leitura-baixa', acao: 'Resistência ou falta de clareza relevante. Exige diagnóstico complementar e plano de ação individualizado.' };
+  return { texto: 'Alinhamento crítico', classe: 'leitura-critica', acao: 'A mudança não está sendo compreendida ou aceita. Pausa para escuta ativa e revisão da estratégia.' };
+}
+
+function getPrioridade(media) {
+  if (media < 2.6) return { texto: 'Alta', classe: 'prioridade-alta' };
+  if (media < 3.6) return { texto: 'Média', classe: 'prioridade-media' };
+  return { texto: 'Baixa', classe: 'prioridade-baixa' };
+}
+
+function showResults() {
+  document.getElementById('progress-bar').style.width = '100%';
+
+  const resultados = calcResultados();
+  const mediaGeral = resultados.reduce((s, r) => s + r.media, 0) / resultados.length;
+  const leituraGeral = getLeitura(mediaGeral);
+
+  // Bloco de média geral + leitura
+  document.getElementById('media-geral-wrap').innerHTML = `
+    <div class="media-geral-card">
+      <div>
+        <div class="media-geral-label">Média Geral (ADKAR)</div>
+        <div class="media-geral-leitura">${mediaGeral.toFixed(1).replace('.', ',')} de 5,0</div>
+      </div>
+      <div style="text-align:right">
+        <span class="leitura-badge ${leituraGeral.classe}" style="margin-bottom:0;">${leituraGeral.texto}</span>
+      </div>
+    </div>
+    <p style="font-size:13.5px;color:var(--text);margin-bottom:28px;line-height:1.7;padding:14px 16px;background:#f0f0f0;border-radius:8px;">${leituraGeral.acao}</p>
+  `;
+
+  // Matriz de prioridade por pilar (ordem original A, D, K, AB, R)
+  let rows = '';
+  resultados.forEach(r => {
+    const prioridade = getPrioridade(r.media);
+    rows += `
+      <tr>
+        <td><span class="pilar-nome">${r.label}</span></td>
+        <td class="media-valor">${r.media.toFixed(1).replace('.', ',')}</td>
+        <td><span class="prioridade-badge ${prioridade.classe}">${prioridade.texto}</span></td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('results-matriz').innerHTML = `
+    <table class="matriz-table">
+      <thead>
+        <tr>
+          <th>Pilar</th>
+          <th style="text-align:center">Média</th>
+          <th>Prioridade de Ação</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  goTo('screen-results');
+}
+
+function restartTest() {
+  answers = new Array(allQuestions.length).fill(null);
+  currentQ = 0;
+  goTo('screen-cover');
+}
+
+// ===================== PDF =====================
+async function generatePDF() {
+  const btn = document.getElementById('btnDownload');
+  btn.textContent = '⏳ Gerando PDF...';
+  btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+
+    // Garante que as fontes estão carregadas antes de capturar
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+
+    // Esconde os botões antes de capturar
+    btn.style.display = 'none';
+    const btnRestart = document.querySelector('.btn-restart');
+    if (btnRestart) btnRestart.style.display = 'none';
+
+    const el = document.getElementById('pdf-capture-area');
+
+    // Captura a tela de resultado exatamente como está
+    const canvas = await html2canvas(el, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
+    });
+
+    // Restaura os botões
+    btn.style.display = '';
+    if (btnRestart) btnRestart.style.display = '';
+
+    const imgData = canvas.toDataURL('image/png');
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+
+    // Cabeçalho azul escuro com logo e título
+    const headerH = 26;
+    doc.setFillColor(0, 27, 113);
+    doc.rect(0, 0, pw, headerH, 'F');
+
+    const logoImg = new Image();
+    logoImg.crossOrigin = 'anonymous';
+    logoImg.src = 'https://i.imgur.com/fUPVKmL.png';
+    await new Promise(res => { logoImg.onload = res; logoImg.onerror = res; });
+    try {
+      const logoH = 7;
+      const logoW = (logoImg.naturalWidth / logoImg.naturalHeight) * logoH;
+      doc.addImage(logoImg, 'PNG', pw - 14 - logoW, (headerH - logoH) / 2, logoW, logoH);
+    } catch(e) {}
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Assessment de Prontidao', 14, 12);
+    doc.text('para Mudanca - ADKAR', 14, 19);
+
+    // Cola a captura ocupando toda a largura, com margens laterais pequenas
+    const sideMargin = 8;
+    const contentY = headerH + 6;
+    const imgW = pw - sideMargin * 2;
+    const imgH = (canvas.height / canvas.width) * imgW;
+
+    const availableH = ph - contentY - 8;
+
+    if (imgH <= availableH) {
+      // Cabe em uma página
+      doc.addImage(imgData, 'PNG', sideMargin, contentY, imgW, imgH);
+    } else {
+      // Não cabe: divide em múltiplas páginas
+      let remainingH = imgH;
+      let srcY = 0;
+      let firstPage = true;
+
+      while (remainingH > 0) {
+        const pageContentY = firstPage ? contentY : 8;
+        const pageAvailH = ph - pageContentY - 8;
+        const sliceH = Math.min(pageAvailH, remainingH);
+
+        // Proporção da imagem fonte para esta fatia
+        const srcSliceH = (sliceH / imgW) * canvas.width;
+
+        // Cria um canvas temporário com a fatia
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = canvas.width;
+        tmpCanvas.height = srcSliceH;
+        const ctx = tmpCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, srcY, canvas.width, srcSliceH, 0, 0, canvas.width, srcSliceH);
+        const sliceData = tmpCanvas.toDataURL('image/png');
+
+        if (!firstPage) {
+          doc.addPage();
+          // Cabeçalho nas páginas seguintes
+          doc.setFillColor(0, 27, 113);
+          doc.rect(0, 0, pw, headerH, 'F');
+        }
+
+        doc.addImage(sliceData, 'PNG', sideMargin, pageContentY, imgW, sliceH);
+
+        srcY += srcSliceH;
+        remainingH -= sliceH;
+        firstPage = false;
+      }
+    }
+
+    doc.save('Assessment Prontidao para Mudanca - Resultado.pdf');
+
+  } catch(e) {
+    console.error(e);
+    alert('Erro ao gerar PDF: ' + e.message);
+  }
+
+  btn.textContent = 'Baixar resultado em PDF';
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
