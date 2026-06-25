@@ -28,6 +28,8 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   /* Barra de progresso fixa */
@@ -763,7 +765,7 @@ function showResults() {
         <span class="leitura-badge ${leituraGeral.classe}" style="margin-bottom:0;">${leituraGeral.texto}</span>
       </div>
     </div>
-    <p style="font-size:13.5px;color:var(--text);margin-bottom:28px;line-height:1.7;padding:14px 16px;background:#f0f0f0;border-radius:8px;">${leituraGeral.acao}</p>
+    <p style="font-size:13px;color:var(--text);margin-bottom:28px;line-height:1.6;padding:14px 16px;background:#f0f0f0;border-radius:8px;">${leituraGeral.acao}</p>
   `;
 
   // Matriz de prioridade por pilar (ordem original A, D, K, AB, R)
@@ -815,10 +817,13 @@ async function generatePDF() {
       await document.fonts.ready;
     }
 
-    // Esconde os botões antes de capturar
+    // Esconde os botões e a barra de progresso antes de capturar
     btn.style.display = 'none';
     const btnRestart = document.querySelector('.btn-restart');
     if (btnRestart) btnRestart.style.display = 'none';
+    const progressBar = document.getElementById('progress-bar-wrap');
+    const progressBarPrevDisplay = progressBar ? progressBar.style.display : '';
+    if (progressBar) progressBar.style.display = 'none';
 
     const el = document.getElementById('pdf-capture-area');
 
@@ -852,9 +857,10 @@ async function generatePDF() {
     // Remove o clone
     document.body.removeChild(clone);
 
-    // Restaura os botões
+    // Restaura os botões e a barra de progresso
     btn.style.display = '';
     if (btnRestart) btnRestart.style.display = '';
+    if (progressBar) progressBar.style.display = progressBarPrevDisplay;
 
     const imgData = canvas.toDataURL('image/png');
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
