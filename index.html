@@ -822,16 +822,32 @@ async function generatePDF() {
 
     const el = document.getElementById('pdf-capture-area');
 
-    // Captura a tela de resultado exatamente como está
-    const canvas = await html2canvas(el, {
+    // Clona o conteúdo numa largura fixa de desktop (680px),
+    // para que no mobile o PDF saia idêntico ao desktop
+    const FIXED_WIDTH = 680;
+    const clone = el.cloneNode(true);
+    clone.style.width = FIXED_WIDTH + 'px';
+    clone.style.maxWidth = FIXED_WIDTH + 'px';
+    clone.style.position = 'fixed';
+    clone.style.top = '0';
+    clone.style.left = '-9999px';
+    clone.style.background = '#ffffff';
+    clone.style.padding = '0';
+    document.body.appendChild(clone);
+
+    // Captura o clone na largura fixa
+    const canvas = await html2canvas(clone, {
       scale: 3,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
       logging: false,
-      windowWidth: el.scrollWidth,
-      windowHeight: el.scrollHeight,
+      width: FIXED_WIDTH,
+      windowWidth: FIXED_WIDTH,
     });
+
+    // Remove o clone
+    document.body.removeChild(clone);
 
     // Restaura os botões
     btn.style.display = '';
@@ -874,8 +890,13 @@ async function generatePDF() {
     if (imgH <= availableH) {
       // Cabe em uma página
       doc.addImage(imgData, 'PNG', sideMargin, contentY, imgW, imgH);
+    } else if (imgH <= availableH * 1.6) {
+      // Um pouco maior: escala para caber inteira em uma página (sem cortar)
+      const scaledH = availableH;
+      const scaledW = (imgW / imgH) * scaledH;
+      doc.addImage(imgData, 'PNG', (pw - scaledW) / 2, contentY, scaledW, scaledH);
     } else {
-      // Não cabe: divide em múltiplas páginas
+      // Muito grande: divide em múltiplas páginas
       let remainingH = imgH;
       let srcY = 0;
       let firstPage = true;
@@ -885,10 +906,8 @@ async function generatePDF() {
         const pageAvailH = ph - pageContentY - 8;
         const sliceH = Math.min(pageAvailH, remainingH);
 
-        // Proporção da imagem fonte para esta fatia
         const srcSliceH = (sliceH / imgW) * canvas.width;
 
-        // Cria um canvas temporário com a fatia
         const tmpCanvas = document.createElement('canvas');
         tmpCanvas.width = canvas.width;
         tmpCanvas.height = srcSliceH;
@@ -898,7 +917,6 @@ async function generatePDF() {
 
         if (!firstPage) {
           doc.addPage();
-          // Cabeçalho nas páginas seguintes
           doc.setFillColor(0, 27, 113);
           doc.rect(0, 0, pw, headerH, 'F');
         }
