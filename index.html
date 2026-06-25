@@ -835,6 +835,9 @@ async function generatePDF() {
     clone.style.padding = '0';
     document.body.appendChild(clone);
 
+    // Aguarda o navegador renderizar o clone na largura fixa
+    await new Promise(res => setTimeout(res, 100));
+
     // Captura o clone na largura fixa
     const canvas = await html2canvas(clone, {
       scale: 3,
@@ -879,55 +882,25 @@ async function generatePDF() {
     doc.text('Assessment de Prontidao', 14, 12);
     doc.text('para Mudanca - ADKAR', 14, 19);
 
-    // Cola a captura ocupando toda a largura, com margens laterais pequenas
+    // Cola a captura: sempre em uma página única, escalando para caber
     const sideMargin = 8;
     const contentY = headerH + 6;
-    const imgW = pw - sideMargin * 2;
-    const imgH = (canvas.height / canvas.width) * imgW;
-
     const availableH = ph - contentY - 8;
+    const availableW = pw - sideMargin * 2;
 
-    if (imgH <= availableH) {
-      // Cabe em uma página
-      doc.addImage(imgData, 'PNG', sideMargin, contentY, imgW, imgH);
-    } else if (imgH <= availableH * 1.6) {
-      // Um pouco maior: escala para caber inteira em uma página (sem cortar)
-      const scaledH = availableH;
-      const scaledW = (imgW / imgH) * scaledH;
-      doc.addImage(imgData, 'PNG', (pw - scaledW) / 2, contentY, scaledW, scaledH);
-    } else {
-      // Muito grande: divide em múltiplas páginas
-      let remainingH = imgH;
-      let srcY = 0;
-      let firstPage = true;
+    // Calcula dimensões mantendo proporção, limitado por largura E altura
+    let imgW = availableW;
+    let imgH = (canvas.height / canvas.width) * imgW;
 
-      while (remainingH > 0) {
-        const pageContentY = firstPage ? contentY : 8;
-        const pageAvailH = ph - pageContentY - 8;
-        const sliceH = Math.min(pageAvailH, remainingH);
-
-        const srcSliceH = (sliceH / imgW) * canvas.width;
-
-        const tmpCanvas = document.createElement('canvas');
-        tmpCanvas.width = canvas.width;
-        tmpCanvas.height = srcSliceH;
-        const ctx = tmpCanvas.getContext('2d');
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcSliceH, 0, 0, canvas.width, srcSliceH);
-        const sliceData = tmpCanvas.toDataURL('image/png');
-
-        if (!firstPage) {
-          doc.addPage();
-          doc.setFillColor(0, 27, 113);
-          doc.rect(0, 0, pw, headerH, 'F');
-        }
-
-        doc.addImage(sliceData, 'PNG', sideMargin, pageContentY, imgW, sliceH);
-
-        srcY += srcSliceH;
-        remainingH -= sliceH;
-        firstPage = false;
-      }
+    if (imgH > availableH) {
+      // Se passar da altura, reduz proporcionalmente pra caber
+      imgH = availableH;
+      imgW = (canvas.width / canvas.height) * imgH;
     }
+
+    // Centraliza horizontalmente
+    const imgX = (pw - imgW) / 2;
+    doc.addImage(imgData, 'PNG', imgX, contentY, imgW, imgH);
 
     doc.save('Assessment Prontidao para Mudanca - Resultado.pdf');
 
